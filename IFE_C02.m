@@ -1,5 +1,5 @@
 % Define the file path
-data = readtable("C:\Users\user\Desktop\Bachelor Thesis\After Allocation\My Code\Extension\Air Pollution Data New.xlsx");
+data = readtable("C:\Users\576253im\Desktop\Thesis\Air Pollution Data New.xlsx");
 data = table2array(data);
 Y = data(:,3);
 X = data(:,4:11);
@@ -42,7 +42,9 @@ Y_lagged = Y(valid_rows);
 % Adjust the number of periods and declare F
 T = T - 1;
 
-for oops = 1:500
+oops = 0;
+while obj_value_initial >= 21.1710
+    oops = oops + 1;
     disp(oops)
     group_alloc_first_it = randi(G, N, 1);
     countries_per_group_first = histcounts(group_alloc_first_it, 1:G+1);
@@ -113,7 +115,7 @@ for oops = 1:500
 
     delta = 1;
     s = 0;
-    while delta > 10^(-20) && s <= 100
+    while delta > 0 && s <= 100
         s = s + 1;
         %% Step 1 of Algorithm 3: Compute thetas
         proj_matrix = eye(T) - F_first_it * F_first_it' / T; % Construct the projection matrix
@@ -168,7 +170,7 @@ for oops = 1:500
             end
             new_group_alloc(i) = best_group;
         end
-        
+
         % Checks for empty groups
         countries_per_group = histcounts(new_group_alloc, 1:G+1);
         for value = 1:G
@@ -209,7 +211,6 @@ for oops = 1:500
     end
 end
 sigma2 = obj_value_initial/(N*T-G*T-N-K);
-obj_value_initial = 0; % Resets the objective value
 
 % DGP for IFE
 for j = 1:MC_sim
@@ -241,10 +242,11 @@ for j = 1:MC_sim
     F_first_it = final_F;
     thetas_opt_first_it = thetas_final;
     group_alloc_first_it = final_groups;
+    obj_value_initial = 10^10; % Resets the objective value
 
     delta = 1;
     s = 0;
-    while delta > 10^(-20) && s <= 100
+    while delta > 0 && s <= 100
         s = s + 1;
         % Step 1 of Algorithm 3: Compute thetas
         proj_matrix = eye(T) - F_first_it * F_first_it' / T; % Construct the projection matrix
@@ -299,7 +301,7 @@ for j = 1:MC_sim
             end
             new_group_alloc(i) = best_group;
         end
-        
+
         % Checks for empty groups
         countries_per_group = histcounts(new_group_alloc, 1:G+1);
         for value = 1:G
@@ -338,10 +340,11 @@ for j = 1:MC_sim
             final_Lambda_2 = Lambda_IFE;
         end
     end
-    MC_IFE_thetas(:, :, 1) = thetas_opt_first_it';
+    MC_IFE_thetas(:, :, j) = thetas_final_2';
 end
+
 
 disp("The bias is:")
 disp(abs(thetas_final' - mean(MC_IFE_thetas,3)))
 disp("The standard errors are:")
-disp(std(MC_IFE_thetas,3))
+disp(std(MC_IFE_thetas, 0, 3) / sqrt(MC_sim))
