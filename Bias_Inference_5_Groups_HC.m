@@ -105,8 +105,11 @@ for sim = 1:repNum
     end
 end
 
+true_thetas = [
+    0.2393; 0.0812; 0.3320; 0.0511; 0.5830; 0.0639; 0.5814; 0.0636; 0.5573;0.0666];
+true_thetas_bias = reshape(true_thetas,Var,G);
 % Bias:
-disp('The bias results across all simulations are are:')
+disp('The mean theta results across all simulations are are:')
 mean_theta = reshape(mean(thetas), [Var, G]);
 disp(mean_theta)
 disp(mean_theta(2, :) ./ (1 - mean_theta(1, :)))
@@ -125,9 +128,6 @@ median(std_theta_inc_vect)
 
 % Coverage
 coverage_probs = zeros(Var+1,G);
-true_thetas = [
-    0.2393; 0.0812; 0.3320; 0.0511; 0.5830; 0.0639; 0.5814; 0.0636; 0.5573;0.0666];
-
 for g = 1:G
     asympt_std = std_cluster_vect(:,G*T+1:G*T+Var,g);
 
@@ -148,4 +148,4 @@ for g = 1:G
 end
 
 disp('The empirical coverage probabilities (at a 5% level) across all simulations are: ')
-coverage_probs
+disp(coverage_probs)

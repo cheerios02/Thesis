@@ -105,8 +105,15 @@ for sim = 1:repNum
     end
 end
 
+true_thetas = [0.2992;0.0382;0.5597;0.0645;0.4479;0.0843];
+true_thetas_bias = reshape(true_thetas,Var,G);
+
+disp("The true theta values are:")
+disp(true_thetas_bias)
+disp(true_thetas_bias(2, :) ./ (1 - true_thetas_bias(1, :)))
+
 % Bias:
-disp('The bias results across all simulations are are:')
+disp('The mean theta results across all simulations are are:')
 mean_theta = reshape(mean(thetas), [Var, G]);
 disp(mean_theta)
 disp(mean_theta(2, :) ./ (1 - mean_theta(1, :)))
@@ -125,13 +132,11 @@ median(std_theta_inc_vect)
 
 % Coverage
 coverage_probs = zeros(Var+1,G);
-true_thetas = [0.2992;0.0382;0.5597;0.0645;0.4479;0.0843];
 for g = 1:G
     asympt_std = std_cluster_vect(:,G*T+1:G*T+Var,g);
-
     for count = 1:repNum
         for k = 1:Var
-            if (thetas(count,(g-1)*Var+k)-1.96*asympt_std(count,k) < true_thetas((g-1)*Var+k,1)) && (thetas(count,(g-1)*Var+k)+1.96*asympt_std(count,k)>true_thetas((g-1)*Var+k,1))
+            if (thetas(count,(g-1)*Var+k)-2.24*asympt_std(count,k) < true_thetas((g-1)*Var+k,1)) && (thetas(count,(g-1)*Var+k)+2.24*asympt_std(count,k)>true_thetas((g-1)*Var+k,1))
                 coverage_probs(k,g) = coverage_probs(k,g) + 1/repNum;
             end
         end
@@ -139,11 +144,11 @@ for g = 1:G
 
     std_cum_inc = std_theta_inc_vect(:,g);
     for count = 1:repNum
-        if (thetas(count,2*g)/(1-thetas(count,2*g-1))-1.96*std_cum_inc(count,1) < true_thetas(2*g,1)/(1-true_thetas(2*g-1,1)) && (thetas(count,2*g)/(1-thetas(count,2*g-1))+1.96*std_cum_inc(count,1)>(true_thetas(2*g,1)/(1-true_thetas(2*g-1,1)))))
+        if (thetas(count,2*g)/(1-thetas(count,2*g-1))-2.24*std_cum_inc(count,1) < true_thetas(2*g,1)/(1-true_thetas(2*g-1,1)) && (thetas(count,2*g)/(1-thetas(count,2*g-1))+2.24*std_cum_inc(count,1)>(true_thetas(2*g,1)/(1-true_thetas(2*g-1,1)))))
             coverage_probs(3,g) = coverage_probs(3,g) + 1/repNum;
         end
     end
 end
 
 disp('The empirical coverage probabilities (at a 5% level) across all simulations are: ')
-coverage_probs
+disp(coverage_probs)
