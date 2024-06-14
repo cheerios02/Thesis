@@ -12,9 +12,7 @@ optGroup = BigG_perm;
 G = 3;
 
 % Initialize variables
-thetas = zeros(repNum,Var);
-std_cluster_vect = zeros(repNum,G*T+Var);
-std_theta_inc_vect = zeros(repNum);
+thetas = zeros(repNum,G*Var);
 
 % Initiate the simulations
 for sim = 1:repNum
@@ -50,42 +48,31 @@ for sim = 1:repNum
         end
     end
     
-    denominator=zeros(Var,Var);
-    numerator=zeros(Var,1);
-    
-    for i=1:N
-        for t=1:T
-            denominator=denominator+(X((i-1)*T+t,:)'-X_group_aver((i-1)*T+t,:)')*(X((i-1)*T+t,:)-X_group_aver((i-1)*T+t,:));
-            numerator=numerator+(X((i-1)*T+t,:)'-X_group_aver((i-1)*T+t,:)')*(Y((i-1)*T+t,:)-Y_group_aver((i-1)*T+t,:));
+    denominator=zeros(Var,Var, G);
+    numerator=zeros(Var,G);
+    theta_aux = zeros(Var,G);
+
+    for g = 1:G
+        for i=1:N
+            if opt_group_assign(i) == g
+                for t=1:T
+                    denominator(:,:,g) = denominator(:,:,g)+(X((i-1)*T+t,:)'-X_group_aver((i-1)*T+t,:)')*(X((i-1)*T+t,:)-X_group_aver((i-1)*T+t,:));
+                    numerator(:,g) = numerator(:,g) +(X((i-1)*T+t,:)'-X_group_aver((i-1)*T+t,:)')*(Y((i-1)*T+t,:)-Y_group_aver((i-1)*T+t,:));
+                end
+            end
         end
+        theta_aux(:,g) = denominator(:,:,g) \ numerator(:,g);
     end
-    
-    theta_par=denominator\numerator; % Compute the thetas using an OLS regression
+
     gitot = kron(which_group,eye(T));
-    thetas(sim,:) = theta_par'; % Obtain the estimates of the model parameters for each simulation
-
-    % Related to the large-T clustered variance standard error approach
-    ei=Y-Y_group_aver-(X-X_group_aver)*theta_par;
-    Rei = reshape(ei,T,N)';
-    Omega = zeros(N*T,N*T);
-    Mi = zeros(T,T);
-    for i = 1:N
-        Mi = Rei(i,:)'*Rei(i,:);
-        Omega((i-1)*T+1:i*T,(i-1)*T+1:i*T) = Mi;
-    end
-
-    % Related to the large-T clustered variance standard error approach
-    gitot=kron(which_group,eye(T));
-    Xtot=[gitot X];
-    V = inv(Xtot'*Xtot)*Xtot'*Omega*Xtot*inv(Xtot'*Xtot);
-    V=V*N*T/(N*T-G*T-Var);
-    std_cluster = sqrt(diag(V));
-    std_cluster_vect(sim,:) = std_cluster';
+    thetas(sim,:) = reshape(theta_aux,1,Var*G); % Obtain the estimates of the model parameters for each simulation   
 end
 %% Bias:
 disp('The means of the thetas across all simulations are are:')
-[mean(thetas)]
+mean_theta = reshape(mean(thetas), [Var,G]);
+disp(mean_theta)
 
 %% Standard Deviation
 disp('The standard deviation for theta across all simulations is:')
-[std(thetas)]
+std_theta = reshape(std(thetas), [Var,G]);
+disp(std_theta)
