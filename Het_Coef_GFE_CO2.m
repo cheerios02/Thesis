@@ -1,11 +1,11 @@
 % Load the final data
-data = readtable("C:\Users\user\Desktop\Bachelor Thesis\After Allocation\My Code\Extension\Air Pollution Data New.xlsx");
-data_aux = readtable("C:\Users\user\Desktop\Bachelor Thesis\After Allocation\My Files\Air Pollution Data.xlsx");
+data = readtable("C:\Users\576253im\Desktop\Thesis\Air Pollution Data New.xlsx");
+% data_aux = readtable("C:\Users\user\Desktop\Bachelor Thesis\After Allocation\My Files\Air Pollution Data.xlsx");
 data = table2array(data);
-country_list = data_aux{:,1};
-countryNames = cellstr(country_list);
-[~, ia] = unique(countryNames, 'stable');
-uniqueCountries = countryNames(ia);
+% country_list = data_aux{:,1};
+% countryNames = cellstr(country_list);
+% [~, ia] = unique(countryNames, 'stable');
+% uniqueCountries = countryNames(ia);
 
 % Variable declaration
 X = data(:,4:11);
@@ -13,7 +13,7 @@ Y = data(:,3);
 T = 20; % Number of periods
 K = 8; % Number of variables
 N = 21; % Number of countries
-sim = 2500; % Number of replications
+sim = 9500; % Number of replications
 
 G = 3;
 alphas_opt = zeros(T,G);

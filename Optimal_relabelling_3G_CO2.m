@@ -1,19 +1,16 @@
 % Load the necessary datasets and set the number of countries and
 % simulations
-load('assign_G3_CO2.txt');
-BigG = assign_G3_CO2';
+load('assign_G3_Het_C02.txt');
+BigG = assign_G3_Het_C02';
 N = 21;
 repNum = 500;
 G = 3;
 
-opt_group_assign= [3 3 1 2 1 3 3 1 1 2 2 1 1 2 1 2 3 3 1 3 2]';
+opt_group_assign= [3 3 1 3 3 3 3 1 3 3 2 1 1 2 3 2 3 3 3 3 3]';
 
 % Denote all possible permutations
-diff_perm_num=60; % There are 3! possible permutations. We select a sufficiently high number so we are confident all permutations are included
-permutations = zeros(G,diff_perm_num);
-for i = 1:diff_perm_num
-        permutations(:,i) = randperm(G)';
-end
+diff_perm_num=6; % There are 3! possible permutations. We select a sufficiently high number so we are confident all permutations are included
+permutations = [[1;2;3],[1;3;2],[2;1;3],[2;3;1],[3;2;1],[3;1;2]];
 BigG_perm = zeros(N,repNum);
 
 obj_value = zeros(diff_perm_num,1);
@@ -34,6 +31,6 @@ end
 v = BigG_perm - kron(opt_group_assign,ones(1,repNum));
 missclas_prob = 1 - mean(mean(v==0));
 disp('The misclassification probability for 3 groups is:')
-missclas_prob
+disp(missclas_prob)
 
-save('BigG_perm_G3_CO2.mat', 'BigG_perm');
+save('BigG_perm_G3_het_CO2.mat', 'BigG_perm');

@@ -1,17 +1,17 @@
 %Load the MC datasets
-load('inputMCXG3_new_CO2.txt');
-load('inputMCYG3_new_CO2.txt');
+load('inputMCXG3_het_CO2.txt');
+load('inputMCYG3_het_CO2.txt');
 
 N = 21;
 G = 3;
-T = 19; 
+T = 19;
 K = 8;
 sim = 1000;
 num_simulations = 500;
 opt_group_assign_all = zeros(num_simulations, N);
-opt_thetas_assign_all = zeros(num_simulations,K);
+opt_thetas_assign_all = zeros(num_simulations,G*K);
 
-% Begin the simulations 
+% Begin the simulations
 for sth = 1:num_simulations
     disp(sth)
     obj_value_initial = 10^10; % Set a high initial objective value
@@ -20,15 +20,14 @@ for sth = 1:num_simulations
     alphas_opt = zeros(T,G);
     group_class = zeros(N,1);
     countries_per_group_opt = zeros(G,1);
-    
+
     % Obtain the data for X and Y for all countries and periods in the current simulation
-    X = inputMCXG3_new_CO2((sth-1)*N*T+1:sth*N*T,:);
-    Y = inputMCYG3_new_CO2((sth-1)*N*T+1:sth*N*T);
+    X = inputMCXG3_het_CO2((sth-1)*N*T+1:sth*N*T,:);
+    Y = inputMCYG3_het_CO2((sth-1)*N*T+1:sth*N*T);
 
     for j = 1:sim
         % Initialize the variables
-        theta_random_value = randn;
-        thetas = theta_random_value * ones(K, 1);
+        thetas = randn(K,G);
         W = Y - X * thetas;
 
         % Select G random centers
@@ -38,8 +37,10 @@ for sth = 1:num_simulations
             alphas_intermediate(:, value) = W((V(value)-1)*T+1:V(value)*T); % Selects the alpha values for all periods of these G countries
         end
 
+        s = 0;
         delta = 1;
-        while delta > 0
+        while delta > 0 && s <= 100
+            s = s + 1;
             % Step 1: Assignment
             group_class_intermediate = zeros(N, G);
             for country = 1:N
@@ -48,7 +49,7 @@ for sth = 1:num_simulations
                 for group = 1:G
                     u = 0.0;
                     for period = 1:T
-                        u = u + (y(period) - x(period,:) * thetas - alphas_intermediate(period, group))^2; % Step 2 of Algorithm 1
+                        u = u + (y(period) - x(period,:) * thetas(:,group) - alphas_intermediate(period, group))^2; % Step 2 of Algorithm 1
                     end
                     group_class_intermediate(country, group) = u;
                 end
@@ -100,8 +101,9 @@ for sth = 1:num_simulations
             % Compute demeaned vectors
             X_demeaned = zeros(N*T, K);
             Y_demeaned = zeros(N*T, 1);
-            for value = 1:N
-                for c = 1:G
+            thetas_new = zeros(K,G);
+            for c = 1:G
+                for value = 1:N
                     if group_assign_intermediate(value) == c
                         for t = 1:T
                             X_demeaned((value-1)*T+t, 1) = X((value-1)*T+t, 1) - x1gt(t, c); % Demeans the first covariate
@@ -116,12 +118,21 @@ for sth = 1:num_simulations
                         end
                     end
                 end
+                theta_c = (X_demeaned' * X_demeaned)\ (X_demeaned' * Y_demeaned);
+                thetas_new(:,c) = theta_c;
             end
 
-            theta = (X_demeaned' * X_demeaned) \ (X_demeaned' * Y_demeaned); % Compute the thetas using an OLS regression, Step 3 of Algorithm 1
-
             % Update the objective function
-            obj_value = sum((Y_demeaned - X_demeaned * theta).^2);
+            obj_value = 0;
+            for value = 1:N
+                for c = 1:G
+                    if group_assign_intermediate(value) == c
+                        for t = 1:T
+                            obj_value = obj_value + (Y((value-1)*T+t) - X((value-1)*T+t,:) * thetas_new(:,c) - alphas_intermediate(t,c))^2;
+                        end
+                    end
+                end
+            end
 
             % Compute time-trends
             alphas = zeros(T, G);
@@ -129,19 +140,19 @@ for sth = 1:num_simulations
                 for c = 1:G
                     if group_assign_intermediate(value) == c
                         for t = 1:T
-                            alphas(t, c) = alphas(t, c) + (Y((value-1)*T+t) - X((value-1)*T+t, 1) * theta(1) - X((value-1)*T+t, 2) * theta(2) - X((value-1)*T+t, 3) * theta(3)- X((value-1)*T+t, 4) * theta(4)- X((value-1)*T+t, 5) * theta(5)- X((value-1)*T+t, 6) * theta(6)- X((value-1)*T+t, 7) * theta(7)- X((value-1)*T+t, 8) * theta(8))/ countries_per_group(c); % Step 3 of Algorithm 1
+                            alphas(t, c) = alphas(t, c) + (Y((value-1)*T+t) - X((value-1)*T+t, 1) * thetas_new(1,c) - X((value-1)*T+t, 2) * thetas_new(2,c) - X((value-1)*T+t, 3) * thetas_new(3,c)- X((value-1)*T+t, 4) * thetas_new(4,c)- X((value-1)*T+t, 5) * thetas_new(5,c) - X((value-1)*T+t, 6) * thetas_new(6,c) - X((value-1)*T+t, 7) * thetas_new(7,c)- X((value-1)*T+t, 8) * thetas_new(8,c))/ countries_per_group(c); % Step 3 of Algorithm 1
                         end
                     end
                 end
             end
 
-            delta = sum((theta - thetas).^2) + sum((alphas(:) - alphas_intermediate(:)).^2); % Necessary to test the convergence of the algorithm
-            thetas = theta;
+            delta = sum((thetas_new(:) - thetas(:)).^2) + sum((alphas(:) - alphas_intermediate(:)).^2); % Necessary to test the convergence of the algorithm
+            thetas = thetas_new;
             alphas_intermediate = alphas;
 
             % Store the optimal group assignments, theta values, time trends, etc.
             if obj_value < obj_value_initial
-                thetas_opt = theta;
+                thetas_opt = thetas;
                 alphas_opt = alphas;
                 obj_value_initial = obj_value;
                 opt_group_assign = group_assign_intermediate;
@@ -150,12 +161,13 @@ for sth = 1:num_simulations
         end
     end
     opt_group_assign_all(sth, :) = opt_group_assign';
-    opt_thetas_assign_all(sth,:) = thetas_opt;
+    opt_thetas_assign_all(sth,:,:) = reshape(thetas_opt,1,G*K);
 end
+return;
 
 % Open file for writing
-fileID1 = fopen('assign_G3_C02.txt', 'w');
-fileID2 = fopen('theta_G3_new_CO2.txt', 'w');
+fileID1 = fopen('assign_G3_Het_C02.txt', 'w');
+fileID2 = fopen('theta_G3_Het_new_CO2.txt', 'w');
 
 % Save all transposed results to the text files
 for sth = 1:num_simulations

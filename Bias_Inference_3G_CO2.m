@@ -1,14 +1,14 @@
 % Load the optimal group assignments and necessary data for all simulations 
-load('inputMCXG3_new_CO2.txt');
-load('inputMCYG3_new_CO2.txt');
-load('BigG_perm_G3_CO2');
+load('inputMCXG3_het_CO2.txt');
+load('inputMCYG3_het_CO2.txt');
+load('assign_G3_Het_C02.txt');
 
 % Define the number of periods, variables, replications, countries, and groups
 T = 19;
 Var = 8;
 N = 21;
 repNum = 500;
-optGroup = BigG_perm;
+optGroup = assign_G3_Het_C02';
 G = 3;
 
 % Initialize variables
@@ -16,8 +16,8 @@ thetas = zeros(repNum,G*Var);
 
 % Initiate the simulations
 for sim = 1:repNum
-    X = inputMCXG3_new_CO2((sim-1)*N*T+1:sim*N*T,:); % Obtain the data for X for all countries and periods in the current simulation
-    Y = inputMCYG3_new_CO2((sim-1)*N*T+1:sim*N*T); % Obtain the data for Y for all countries and periods in the current simulation
+    X = inputMCXG3_het_CO2((sim-1)*N*T+1:sim*N*T,:); % Obtain the data for X for all countries and periods in the current simulation
+    Y = inputMCYG3_het_CO2((sim-1)*N*T+1:sim*N*T); % Obtain the data for Y for all countries and periods in the current simulation
     opt_group_assign = optGroup(:,sim); % Obtain the optimal group assignment for all countries in the current simulation
     which_group=zeros(N,G);
     
@@ -61,18 +61,21 @@ for sim = 1:repNum
                 end
             end
         end
+        [m, n] = size(denominator(:,:,g));
+        if rank(denominator(:,:,g)) < min(m,n)
+            return;
+        end
         theta_aux(:,g) = denominator(:,:,g) \ numerator(:,g);
+        gitot = kron(which_group,eye(T));
+        thetas(sim,:) = reshape(theta_aux,1,Var*G); % Obtain the estimates of the model parameters for each simulation
     end
-
-    gitot = kron(which_group,eye(T));
-    thetas(sim,:) = reshape(theta_aux,1,Var*G); % Obtain the estimates of the model parameters for each simulation   
 end
-%% Bias:
-disp('The means of the thetas across all simulations are are:')
-mean_theta = reshape(mean(thetas), [Var,G]);
-disp(mean_theta)
+    %% Bias:
+    disp('The means of the thetas across all simulations are are:')
+    mean_theta = reshape(mean(thetas), [Var,G]);
+    disp(mean_theta)
 
-%% Standard Deviation
-disp('The standard deviation for theta across all simulations is:')
-std_theta = reshape(std(thetas), [Var,G]);
-disp(std_theta)
+    %% Standard Deviation
+    disp('The standard deviation for theta across all simulations is:')
+    std_theta = reshape(std(thetas), [Var,G]);
+    disp(std_theta)
